@@ -1,12 +1,17 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-  "name": "lofirmo",
-  "description": "¿Lo firmo? — security pre-check for transactions on Celo before you sign (address/link/tx analysis).",
+  "name": "Vigía",
+  "description": "Vigía (Celo): security pre-check for transactions on Celo before you sign (address, payment link and tx analysis).",
   "image": "",
   "services": [
-    { "name": "web", "endpoint": "https://github.com/Simonethg/lofirmo" }
+    {
+      "name": "web",
+      "endpoint": "https://github.com/Simonethg/lofirmo"
+    }
   ],
   "x402Support": false,
   "active": true,
-  "supportedTrust": ["reputation"]
+  "supportedTrust": [
+    "reputation"
+  ]
 }

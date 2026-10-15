@@ -11,7 +11,7 @@ async function handle(req: Request, body: Record<string, unknown>) {
   if (!g.ok) return NextResponse.json(g.body, { status: g.status })
   const network: Network = body.network === 'mainnet' ? 'mainnet' : body.network === 'sepolia' ? 'sepolia' : currentNetwork()
   const input = (body.tx as Record<string, string> | undefined) ?? (body.input as string | undefined)
-  if (!input) return NextResponse.json({ error: 'Falta "input" (dirección / link) o "tx" ({to,data,value,from,feeCurrency})' }, { status: 400 })
+  if (!input) return NextResponse.json({ error: 'Missing "input" (address / link) or "tx" ({to,data,value,from,feeCurrency})' }, { status: 400 })
   try {
     const r = await check(input, { network, expectedAmount: body.expectedAmount as string | undefined })
     return NextResponse.json(r, g.settlement ? { headers: { 'x-payment-response': Buffer.from(JSON.stringify(g.settlement)).toString('base64') } } : undefined)
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   try {
     body = await req.json()
   } catch {
-    return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
   return handle(req, body)
 }

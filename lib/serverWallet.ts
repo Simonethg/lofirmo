@@ -18,7 +18,7 @@ export function normalizeKey(raw: string | undefined): Hex {
  * Every tx carries the ERC-8021 attribution tag. Mainnet is blocked by MAINNET_SENDS_ENABLED.
  */
 export function serverWallet(net: Network = 'sepolia') {
-  if (net === 'mainnet' && !MAINNET_SENDS_ENABLED) throw new Error('Envíos en mainnet deshabilitados en este MVP')
+  if (net === 'mainnet' && !MAINNET_SENDS_ENABLED) throw new Error('Mainnet sends are disabled in this MVP')
   const account = privateKeyToAccount(normalizeKey(process.env.CELO_DEPLOYER_PRIVATE_KEY))
   const transport = http(rpcUrl(net))
   const wallet = createWalletClient({ account, chain: CHAINS[net], transport }).extend(withAttribution(ATTRIBUTION_TAG))

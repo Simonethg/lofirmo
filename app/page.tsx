@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react'
 import type { CheckResult } from '@/lib/analyze'
 import { connectedAddress, isMiniPay, scanQr } from '@/lib/wallet'
 
+const SEV: Record<string, string> = { critica: 'Critical', alta: 'High', media: 'Medium', info: 'Info' }
+
+const LABEL: Record<string, string> = { tipo: 'type', token: 'token', monto: 'amount', destinatario: 'recipient', spender: 'spender' }
+
 const NETWORK = process.env.NEXT_PUBLIC_CELO_NETWORK === 'mainnet' ? 'mainnet' : 'sepolia'
 
 export default function Home() {
@@ -33,34 +37,34 @@ export default function Home() {
 
   async function onScan() {
     const t = await scanQr()
-    if (t) { setInput(t); run(t) } else setErr('Escanear QR solo funciona dentro de MiniPay. Pegá el link a mano.')
+    if (t) { setInput(t); run(t) } else setErr('QR scanning only works inside MiniPay. Paste the link instead.')
   }
 
   return (
     <main>
-      <h1>¿Lo firmo?</h1>
-      <p className="small">Pegá una dirección, un link de pago o escaneá un QR. Te decimos si es seguro antes de pagar. Red: {NETWORK === 'mainnet' ? 'Celo' : 'Celo Sepolia (pruebas)'}{minipay ? ' · MiniPay conectado' : ''}</p>
+      <h1 className="brand"><img src="/vigia-logo.svg" alt="Vigía" width={138} height={58} /></h1>
+      <p className="small">Paste an address or a payment link, or scan a QR. We tell you if it's safe before you pay. Network: {NETWORK === 'mainnet' ? 'Celo' : 'Celo Sepolia (testnet)'}{minipay ? ' · MiniPay connected' : ''}</p>
       <textarea rows={4} value={input} onChange={(e) => setInput(e.target.value)} placeholder="0x… · ethereum:0xToken@11142220/transfer?address=0x…&uint256=1e6" />
-      <input value={expected} onChange={(e) => setExpected(e.target.value)} placeholder="¿Cuánto esperás pagar? (opcional, ej. 10)" inputMode="decimal" style={{ marginTop: 8 }} />
-      <button disabled={busy || !input.trim()} onClick={() => run()}>{busy ? 'Revisando…' : 'Revisar'}</button>
-      <button className="secondary" onClick={onScan}>Escanear QR</button>
+      <input value={expected} onChange={(e) => setExpected(e.target.value)} placeholder="How much do you expect to pay? (optional, e.g. 10)" inputMode="decimal" style={{ marginTop: 8 }} />
+      <button disabled={busy || !input.trim()} onClick={() => run()}>{busy ? 'Checking…' : 'Check'}</button>
+      <button className="secondary" onClick={onScan}>Scan QR</button>
       {err && <div className="card rojo">{err}</div>}
       {res && (
         <>
           <div className={`card ${res.semaforo}`}>
             <strong style={{ fontSize: 20 }}>{res.resumen}</strong>
-            <div className="small">{Object.entries(res.intent).filter(([, v]) => v).map(([k, v]) => <div key={k}>{k}: {v}</div>)}</div>
+            <div className="small">{Object.entries(res.intent).filter(([, v]) => v).map(([k, v]) => <div key={k}>{LABEL[k] ?? k}: {v}</div>)}</div>
           </div>
           {res.findings.map((f, i) => (
             <div key={i} className={`card ${f.severity === 'critica' ? 'rojo' : f.severity === 'info' ? 'verde' : 'amarillo'}`}>
-              <div className="sev">{f.severity} · {f.id}</div>
+              <div className="sev">{SEV[f.severity] ?? f.severity} · {f.id}</div>
               <strong>{f.titulo}</strong>
               <div className="small">{f.detalle}</div>
             </div>
           ))}
         </>
       )}
-      <p className="small" style={{ marginTop: 24 }}>Código abierto (MIT). No guardamos nada ni pedimos firmas.</p>
+      <p className="small" style={{ marginTop: 24 }}>Open source (MIT). We store nothing and never ask you to sign.</p>
     </main>
   )
 }

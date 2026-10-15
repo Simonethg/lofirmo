@@ -74,7 +74,7 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
   const chainId = CHAINS[net].id
 
   if (parsed.chainId && parsed.chainId !== chainId) {
-    add({ id: 'WRONG_CHAIN', severity: 'alta', titulo: 'Red distinta', detalle: `El link es para la red ${parsed.chainId}, pero estás en ${CHAINS[net].name} (${chainId}).` })
+    add({ id: 'WRONG_CHAIN', severity: 'alta', titulo: 'Wrong network', detalle: `The link is for chain ${parsed.chainId}, but you are on ${CHAINS[net].name} (${chainId}).` })
   }
 
   const tokenAddr = intent.kind === 'transfer' || intent.kind === 'approve' || intent.kind === 'transferFrom' ? intent.token : undefined
@@ -85,33 +85,33 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
   // CELO-003: adapter used as token
   const asAdapter = findAdapter(net, tokenAddr ?? tx.to)
   if (asAdapter) {
-    add({ id: 'CELO-003', severity: 'critica', titulo: 'Dirección de adapter usada como token', detalle: `${short(tokenAddr ?? tx.to)} es el adapter de fee de ${asAdapter.symbol}, no el token. Para mover ${asAdapter.symbol} hay que usar ${asAdapter.address}. El adapter solo va en feeCurrency.` })
+    add({ id: 'CELO-003', severity: 'critica', titulo: 'Fee adapter address used as token', detalle: `${short(tokenAddr ?? tx.to)} is the ${asAdapter.symbol} fee adapter, not the token. To move ${asAdapter.symbol}, use ${asAdapter.address}. The adapter only belongs in feeCurrency.` })
   } else if (tokenAddr && !token) {
-    add({ id: 'UNKNOWN_TOKEN', severity: 'media', titulo: 'Token desconocido', detalle: `${short(tokenAddr)} no es USDC, USDT, USA₮ ni USDm en ${CHAINS[net].name}. Verificá que sea el token que creés.` })
+    add({ id: 'UNKNOWN_TOKEN', severity: 'media', titulo: 'Unknown token', detalle: `${short(tokenAddr)} is not USDC, USDT, USA₮ or USDm on ${CHAINS[net].name}. Make sure it is the token you think it is.` })
   }
 
   // CELO-001: decimals
   if (token && amount !== undefined && amount > 0n && intent.kind !== 'approve') {
     if (token.decimals === 6 && amount >= TEN12 && amount % TEN12 === 0n) {
-      add({ id: 'CELO-001', severity: 'critica', titulo: 'Decimales equivocados (18 en vez de 6)', detalle: `${token.symbol} en Celo tiene 6 decimales. El monto codificado equivale a ${fmt(amount, token)}, ${'\u2248'}10¹² veces lo que probablemente querías (${formatUnits(amount / TEN12, 6)} ${token.symbol}).` })
+      add({ id: 'CELO-001', severity: 'critica', titulo: 'Wrong decimals (18 instead of 6)', detalle: `${token.symbol} on Celo has 6 decimals. The encoded amount is ${fmt(amount, token)}, ${'\u2248'}10¹² times what you probably meant (${formatUnits(amount / TEN12, 6)} ${token.symbol}).` })
     } else if (token.decimals === 18 && amount < TEN12) {
-      add({ id: 'CELO-001', severity: 'alta', titulo: 'Decimales equivocados (6 en vez de 18)', detalle: `${token.symbol} tiene 18 decimales. El monto es ${fmt(amount, token)}, casi nada: parece calculado con 6 decimales.` })
+      add({ id: 'CELO-001', severity: 'alta', titulo: 'Wrong decimals (6 instead of 18)', detalle: `${token.symbol} has 18 decimals. The amount is ${fmt(amount, token)}, almost nothing: it looks computed with 6 decimals.` })
     }
   }
   if (token && amount !== undefined && opts.expectedAmount) {
     const shown = Number(formatUnits(amount, token.decimals))
     const exp = Number(opts.expectedAmount)
     if (exp > 0 && Math.abs(shown - exp) / exp > 0.01) {
-      add({ id: 'AMOUNT_MISMATCH', severity: 'critica', titulo: 'El monto no coincide', detalle: `Esperabas ${opts.expectedAmount} ${token.symbol}, pero la transacción mueve ${fmt(amount, token)}.` })
+      add({ id: 'AMOUNT_MISMATCH', severity: 'critica', titulo: "Amount doesn't match", detalle: `You expected ${opts.expectedAmount} ${token.symbol}, but the transaction moves ${fmt(amount, token)}.` })
     }
   }
 
   // Unlimited approve
   if (intent.kind === 'approve') {
     if (intent.amount === maxUint256 || intent.amount >= 2n ** 128n) {
-      add({ id: 'UNLIMITED_APPROVE', severity: 'critica', titulo: 'Permiso ilimitado', detalle: `Le das a ${short(intent.spender)} permiso para gastar TODO tu ${token?.symbol ?? 'token'}, para siempre. Aprobá solo el monto exacto.` })
+      add({ id: 'UNLIMITED_APPROVE', severity: 'critica', titulo: 'Unlimited approval', detalle: `You give ${short(intent.spender)} permission to spend ALL your ${token?.symbol ?? 'token'}, forever. Approve only the exact amount.` })
     } else {
-      add({ id: 'APPROVE', severity: 'media', titulo: 'Le das permiso a otra dirección', detalle: `${short(intent.spender)} podrá gastar hasta ${fmt(intent.amount, token)} de tu saldo sin pedirte otra firma.` })
+      add({ id: 'APPROVE', severity: 'media', titulo: 'You are granting a spending approval', detalle: `${short(intent.spender)} will be able to spend up to ${fmt(intent.amount, token)} of your balance without asking you to sign again.` })
     }
   }
 
@@ -119,15 +119,15 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
   if (tx.feeCurrency) {
     const fcTok = findToken(net, tx.feeCurrency)
     if (fcTok && fcTok.adapter) {
-      add({ id: 'CELO-002', severity: 'alta', titulo: 'feeCurrency apunta al token y no al adapter', detalle: `Para pagar la network fee en ${fcTok.symbol} hay que usar el adapter ${fcTok.adapter}, no el token ${short(fcTok.address)}. Así la tx falla o la wallet la reemplaza.` })
+      add({ id: 'CELO-002', severity: 'alta', titulo: 'feeCurrency points to the token, not the adapter', detalle: `To pay the network fee in ${fcTok.symbol}, use the adapter ${fcTok.adapter}, not the token ${short(fcTok.address)}. As is, the tx fails or the wallet replaces it.` })
     } else if (!fcTok && !findAdapter(net, tx.feeCurrency)) {
-      add({ id: 'UNKNOWN_FEE_CURRENCY', severity: 'media', titulo: 'Moneda de fee desconocida', detalle: `${short(tx.feeCurrency)} no está en la lista de fee currencies conocidas.` })
+      add({ id: 'UNKNOWN_FEE_CURRENCY', severity: 'media', titulo: 'Unknown fee currency', detalle: `${short(tx.feeCurrency)} is not in the list of known fee currencies.` })
     }
   }
 
   // Recipient = token contract
   if (recipient && (findToken(net, recipient) || findAdapter(net, recipient))) {
-    add({ id: 'SEND_TO_TOKEN', severity: 'critica', titulo: 'Destino es un contrato de token', detalle: 'Mandar fondos al propio contrato del token los pierde para siempre.' })
+    add({ id: 'SEND_TO_TOKEN', severity: 'critica', titulo: 'Recipient is a token contract', detalle: 'Sending funds to the token contract itself loses them forever.' })
   }
 
   // On-chain checks
@@ -140,12 +140,12 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
       const [n, code] = await Promise.all([reader.getTransactionCount(watch), reader.getCode(watch)])
       const isContract = !!code && code !== '0x'
       if (!isContract && n === 0) {
-        add({ id: 'NEW_RECIPIENT', severity: 'media', titulo: 'Destinatario sin historial', detalle: `${short(watch)} nunca envió una transacción en ${CHAINS[net].name}. Si no la conocés, confirmala por otro medio antes de pagar.` })
+        add({ id: 'NEW_RECIPIENT', severity: 'media', titulo: 'Recipient has no history', detalle: `${short(watch)} has never sent a transaction on ${CHAINS[net].name}. If you don't know it, confirm it another way before paying.` })
       } else if (isContract && intent.kind !== 'approve') {
-        add({ id: 'RECIPIENT_CONTRACT', severity: 'info', titulo: 'El destino es un contrato', detalle: `${short(watch)} es un contrato, no una persona. Verificá que sea el servicio correcto.` })
+        add({ id: 'RECIPIENT_CONTRACT', severity: 'info', titulo: 'Recipient is a contract', detalle: `${short(watch)} is a contract, not a person. Make sure it is the right service.` })
       }
     } catch (e) {
-      add({ id: 'RPC_ERROR', severity: 'info', titulo: 'No pude consultar la red', detalle: `Sin datos on-chain del destinatario: ${(e as Error).message.slice(0, 120)}` })
+      add({ id: 'RPC_ERROR', severity: 'info', titulo: "Couldn't reach the network", detalle: `No on-chain data for the recipient: ${(e as Error).message.slice(0, 120)}` })
     }
   }
 
@@ -167,12 +167,12 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
     try {
       if (intent.kind === 'transfer' && token) {
         const bal = await reader.balanceOf(token.address, from)
-        if (bal < intent.amount) add({ id: 'INSUFFICIENT_BALANCE', severity: 'alta', titulo: 'Saldo insuficiente', detalle: `Tenés ${fmt(bal, token)} y la tx pide ${fmt(intent.amount, token)}.` })
+        if (bal < intent.amount) add({ id: 'INSUFFICIENT_BALANCE', severity: 'alta', titulo: 'Insufficient balance', detalle: `You have ${fmt(bal, token)} and the tx needs ${fmt(intent.amount, token)}.` })
       }
       await reader.call({ from, to: callTo, data: callData, value })
       simulated = true
     } catch (e) {
-      add({ id: 'SIMULATION_REVERT', severity: 'alta', titulo: 'La transacción fallaría', detalle: `La simulación revierte: ${(e as Error).message.split('\n')[0].slice(0, 160)}` })
+      add({ id: 'SIMULATION_REVERT', severity: 'alta', titulo: 'The transaction would fail', detalle: `Simulation reverts: ${(e as Error).message.split('\n')[0].slice(0, 160)}` })
     }
   }
   try {
@@ -182,14 +182,14 @@ export async function check(input: string | RawTx, opts: CheckOptions): Promise<
     const sym = feeTok?.symbol ?? 'CELO'
     const amt = Number(formatUnits(gas * price, 18))
     fee = { amount: amt < 0.0001 ? '<0.0001' : amt.toFixed(4), currency: sym, gas: gas.toString() }
-    add({ id: 'FEE', severity: 'info', titulo: 'Network fee estimada', detalle: `~${fee.amount} ${sym}${from ? '' : ' (estimación sin remitente)'}. MiniPay puede cobrarla en la stablecoin que más tengas.` })
+    add({ id: 'FEE', severity: 'info', titulo: 'Estimated network fee', detalle: `~${fee.amount} ${sym}${from ? '' : ' (estimate without sender)'}. MiniPay can charge it in the stablecoin you hold most of.` })
   } catch {
     /* fee is best-effort */
   }
 
   const worst = findings.some((f) => f.severity === 'critica') ? 'no_firmes' : findings.some((f) => f.severity === 'alta' || f.severity === 'media') ? 'revisa' : 'ok'
   const semaforo = worst === 'no_firmes' ? 'rojo' : worst === 'revisa' ? 'amarillo' : 'verde'
-  const resumen = worst === 'no_firmes' ? 'No lo firmes.' : worst === 'revisa' ? 'Revisalo antes de firmar.' : 'No encontramos problemas. Podés firmar.'
+  const resumen = worst === 'no_firmes' ? "Don't sign it." : worst === 'revisa' ? 'Review it before signing.' : 'No problems found. You can sign.'
 
   const out: Record<string, string | undefined> = { tipo: intent.kind, token: token?.symbol ?? tokenAddr }
   if (amount !== undefined) out.monto = fmt(amount, token)

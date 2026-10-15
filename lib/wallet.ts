@@ -17,8 +17,8 @@ export const isMiniPay = () => typeof window !== 'undefined' && !!window.ethereu
  * writeContract carries the ERC-8021 attribution tag.
  */
 export function walletClient(net: Network) {
-  if (!window.ethereum) throw new Error('No hay wallet (abrí la app dentro de MiniPay)')
-  if (net === 'mainnet' && !MAINNET_SENDS_ENABLED) throw new Error('Envíos en mainnet deshabilitados en este MVP')
+  if (!window.ethereum) throw new Error('No wallet found (open the app inside MiniPay)')
+  if (net === 'mainnet' && !MAINNET_SENDS_ENABLED) throw new Error('Mainnet sends are disabled in this MVP')
   return createWalletClient({ chain: CHAINS[net], transport: custom(window.ethereum) }).extend(withAttribution(ATTRIBUTION_TAG))
 }
 

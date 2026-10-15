@@ -16,7 +16,7 @@ export function paymentRequirements(resource: string) {
     network: net,
     maxAmountRequired: atomic,
     resource,
-    description: '¿Lo firmo? pre-signing check',
+    description: 'Vigía pre-signing check',
     mimeType: 'application/json',
     payTo: X402.payTo(),
     maxTimeoutSeconds: 60,

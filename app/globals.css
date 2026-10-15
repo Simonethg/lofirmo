@@ -1,11 +1,17 @@
+@font-face { font-family: 'Instrument Sans'; src: url('/fonts/InstrumentSans.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; background: #f6f6f2; color: #1a1a1a; }
+body { margin: 0; font-family: 'Instrument Sans', sans-serif; background: #F7F6F2; color: #111110; }
 main { max-width: 480px; margin: 0 auto; padding: 16px; }
-h1 { font-size: 1.6rem; margin: 8px 0; }
-textarea, input { width: 100%; font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid #ccc; }
-button { font-size: 16px; padding: 14px; border-radius: 12px; border: 0; background: #1a1a1a; color: #fff; width: 100%; margin-top: 8px; }
-button.secondary { background: #e4e4dc; color: #1a1a1a; }
-.card { background: #fff; border-radius: 16px; padding: 14px; margin-top: 12px; }
-.rojo { border-left: 8px solid #d33; } .amarillo { border-left: 8px solid #e6a800; } .verde { border-left: 8px solid #2a9d4b; }
-.sev { font-size: 12px; text-transform: uppercase; font-weight: 700; }
-.small { font-size: 13px; color: #555; }
+h1.brand { margin: 4px 0 8px -16px; line-height: 0; }
+h1.brand img { display: block; }
+textarea, input { width: 100%; font: inherit; font-size: 16px; padding: 12px; border-radius: 12px; border: 1px solid #cfcdc4; background: #fff; color: #111110; }
+button { font: inherit; font-size: 16px; font-weight: 600; padding: 14px; border-radius: 12px; border: 0; background: #111110; color: #F7F6F2; width: 100%; margin-top: 8px; }
+button:disabled { opacity: .45; }
+button.secondary { background: #e8e6df; color: #111110; }
+.card { background: #fff; border-radius: 16px; padding: 14px; margin-top: 12px; border: 1px solid #e3e1d9; }
+/* Verdicts: monochrome. Amber is reserved for the lamp in the logo. */
+.rojo { border-left: 8px solid #111110; }
+.amarillo { border-left: 8px solid #6b6a64; }
+.verde { border-left: 8px solid #cfcdc4; }
+.sev { font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: .04em; }
+.small { font-size: 13px; color: #55544e; }

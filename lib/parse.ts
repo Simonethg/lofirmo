@@ -27,10 +27,10 @@ export interface Parsed {
 function num(s: string): bigint {
   // EIP-681 allows scientific notation, e.g. 1.5e6
   const m = /^(\d+)(?:\.(\d+))?(?:e(\d+))?$/i.exec(s.trim())
-  if (!m) throw new Error(`número inválido: ${s}`)
+  if (!m) throw new Error(`invalid number: ${s}`)
   const [, int, frac = '', exp = '0'] = m
   const e = Number(exp)
-  if (frac.length > e) throw new Error(`número no entero: ${s}`)
+  if (frac.length > e) throw new Error(`not a whole number: ${s}`)
   return BigInt(int + frac + '0'.repeat(e - frac.length))
 }
 
@@ -102,5 +102,5 @@ export function parseInput(input: string | RawTx): Parsed {
   if (s.startsWith('{')) return decodeTx(JSON.parse(s) as RawTx)
   const m = /^(0x[0-9a-fA-F]{40})[:\s]+(0x[0-9a-fA-F]+)$/.exec(s)
   if (m) return { ...decodeTx({ to: m[1], data: m[2] }), source: 'calldata' }
-  throw new Error('No entendí la entrada. Pegá una dirección 0x…, un link ethereum:/celo: o un JSON de transacción.')
+  throw new Error("Couldn't read the input. Paste a 0x… address, an ethereum:/celo: link or a transaction JSON.")
 }
