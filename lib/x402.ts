@@ -33,10 +33,10 @@ export type Gate = { ok: true; settlement?: unknown } | { ok: false; status: 402
 
 type Fetch = typeof fetch
 
-async function post(f: Fetch, path: string, body: unknown) {
+async function post(f: Fetch, path: string, body: unknown, extra: Record<string, string> = {}) {
   const r = await f(`${X402.facilitatorUrl()}${path}`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': X402.apiKey() },
+    headers: { 'content-type': 'application/json', 'x-api-key': X402.apiKey(), ...extra },
     body: JSON.stringify(body),
   })
   const j = (await r.json().catch(() => ({}))) as Record<string, unknown>
@@ -58,7 +58,7 @@ export async function gate(headers: Headers, resource: string, f: Fetch = fetch)
   try {
     const v = await post(f, '/verify', req)
     if (!v.ok || v.j.isValid !== true) return { ok: false, status: 402, body: { ...requirementsBody(resource), error: `payment invalid: ${String(v.j.invalidReason ?? 'verify failed')}` } }
-    const s = await post(f, '/settle', req)
+    const s = await post(f, '/settle', req, { 'x-idempotency-key': crypto.randomUUID() })
     if (!s.ok || s.j.success !== true) return { ok: false, status: 402, body: { ...requirementsBody(resource), error: `settlement failed: ${String(s.j.errorReason ?? 'settle failed')}` } }
     return { ok: true, settlement: s.j }
   } catch (e) {

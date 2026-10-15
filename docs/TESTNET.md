@@ -28,3 +28,10 @@ No live payment has been made yet. It needs:
 2. A buyer wallet holding testnet USDC (for example from the Circle faucet), plus a buyer client (`@x402/fetch`) that signs the EIP-3009 authorization.
 
 Then set `X402_ENABLED=true X402_PAY_TO=<address> X402_API_KEY=...`.
+
+### x402 live attempt (2026-10-15)
+
+- The facilitator API key works: `/settle` accepts it (a bad key gets 401 `Invalid API key`). The facilitator also rejects a payer that equals `payTo` (`self_payment_rejected`), so the payer has to be a separate wallet.
+- Buyer script: `PAYER_PRIVATE_KEY=... npx tsx scripts/x402-pay.ts [url]`. It signs the EIP-3009 `TransferWithAuthorization`. The payer key is a throwaway, generated locally and kept outside the repo.
+- Throwaway payer: `0x62b3263a3d81B22EEe3911b6bE9E917523C37B0b`
+- Status: the full round trip works (402, then signed payment, then `/verify`). It stops at `insufficient_funds` because the payer has 0 testnet USDC, and no programmatic faucet exists. The fix is to request USDC for the payer address on Celo Sepolia at https://faucet.circle.com (20 USDC every 2 hours) and rerun the script.
