@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks committing secrets/env files. Install: git config core.hooksPath scripts/hooks
+files=$(git diff --cached --name-only --diff-filter=ACM)
+bad=$(echo "$files" | grep -E '(^|/)\.env($|\.)|\.(pem|key|p12)$|keystore' | grep -v '\.env\.example$')
+if [ -n "$bad" ]; then echo "pre-commit: blocked sensitive files:"; echo "$bad"; exit 1; fi
+if git diff --cached -U0 -- . ':!scripts/hooks/pre-commit' ':!package-lock.json' | grep -E '^\+' | grep -Eq '(sk-[A-Za-z0-9]{20}|ghp_|gho_|github_pat_|xox[abp]-|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30}|-----BEGIN [A-Z ]*PRIVATE KEY|PRIVATE_KEY=0x[0-9a-fA-F]{64}|mnemonic *[:=])'; then
+  echo "pre-commit: possible secret in staged diff"; exit 1; fi
+exit 0
