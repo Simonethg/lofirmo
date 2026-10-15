@@ -37,7 +37,7 @@ function num(s: string): bigint {
 /** ethereum:/celo: payment links (EIP-681). */
 export function parsePaymentLink(link: string): Parsed {
   const m = /^(?:ethereum|celo):(?:pay-)?(0x[0-9a-fA-F]{40})(?:@(\d+))?(?:\/(\w+))?(?:\?(.*))?$/.exec(link.trim())
-  if (!m) throw new Error('link de pago no reconocido')
+  if (!m) throw new Error('unrecognized payment link')
   const [, target, chain, fn, query = ''] = m
   const q = new URLSearchParams(query)
   const chainId = chain ? Number(chain) : undefined
@@ -47,13 +47,13 @@ export function parsePaymentLink(link: string): Parsed {
   if (fn === 'transfer') {
     const to = q.get('address')
     const amt = q.get('uint256')
-    if (!to || !isAddress(to) || !amt) throw new Error('link transfer incompleto (address / uint256)')
+    if (!to || !isAddress(to) || !amt) throw new Error('incomplete transfer link (address / uint256)')
     return { source: 'eip681', chainId, tx: { to: t, feeCurrency: fc }, intent: { kind: 'transfer', token: t, to: getAddress(to), amount: num(amt) } }
   }
   if (fn === 'approve') {
     const sp = q.get('address')
     const amt = q.get('uint256')
-    if (!sp || !isAddress(sp) || !amt) throw new Error('link approve incompleto (address / uint256)')
+    if (!sp || !isAddress(sp) || !amt) throw new Error('incomplete approve link (address / uint256)')
     return { source: 'eip681', chainId, tx: { to: t, feeCurrency: fc }, intent: { kind: 'approve', token: t, spender: getAddress(sp), amount: num(amt) } }
   }
   if (fn) return { source: 'eip681', chainId, tx: { to: t, feeCurrency: fc }, intent: { kind: 'unknown', to: t } }
@@ -70,7 +70,7 @@ export function decodeTx(raw: RawTx): Parsed {
   const value = raw.value ? BigInt(raw.value) : undefined
   const tx = { to, data, value, from, feeCurrency }
   if (!data) {
-    if (!to) throw new Error('falta destinatario (to)')
+    if (!to) throw new Error('missing recipient (to)')
     return { source: 'tx', tx, intent: value ? { kind: 'native', to, value } : { kind: 'address', to } }
   }
   try {

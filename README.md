@@ -1,10 +1,55 @@
 # Vigía (Celo)
 
-MiniPay (Celo) mini app that checks a payment **before you sign it**. Paste an address or a payment link (or scan a QR inside MiniPay) and get a verdict (`ok`, `review`, `don't sign`) with a plain-English explanation.
+Vigía checks a Celo payment **automatically, before it is sent**. Nobody pastes anything.
+
+- **Check API (the main product).** Payment apps, merchants, wallets and agents call `POST /api/check` from their own code before sending a payment, and can pay per check with x402. The person only sees a warning when something is wrong.
+- **MiniPay deep link.** A payment link opens directly in the mini app at `/pay?link=…`. Vigía checks it on load and shows **Pay** only if the check passes. Otherwise it shows the warning instead.
 
 Vigía is one security product with one brand across Arc, Base and Celo. This repo is the Celo version (formerly "¿Lo firmo?"). The repo keeps the name `lofirmo` because the ERC-8004 agent registration points to it.
 
-Built for the *Agents on Open Rails* hackathon (Celo). Current network: **Celo Sepolia (testnet)**. Mainnet is configured but **sends are disabled** (`MAINNET_SENDS_ENABLED = false`).
+Built for the *Agents on Open Rails* hackathon (Celo). Current network: **Celo Sepolia (testnet)**. Mainnet is configured but **sends are disabled** (`MAINNET_SENDS_ENABLED = false`). No x402 payment has settled live yet.
+
+## Call it from code
+
+`POST /api/check` with a JSON body:
+
+| Field | Type | |
+|---|---|---|
+| `input` | string | a payment link (`ethereum:` / `celo:`), an address, or `<to>:<calldata>` |
+| `tx` | object | instead of `input`: an unsigned tx `{ to, data, value, from, feeCurrency }` |
+| `expectedAmount` | string | optional, what the payer expects to pay in token units, e.g. `"10"` |
+| `network` | `"sepolia"` \| `"mainnet"` | optional, defaults to the server's network |
+
+The response is `{ verdict, resumen, findings[], intent, fee, simulated, ... }`. `verdict` is `"ok"`, `"revisa"` (review) or `"no_firmes"` (don't sign). The field names are kept from the original API for compatibility; the text is in English.
+
+```js
+const res = await fetch('https://<your-vigia-host>/api/check', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ input: paymentLink, expectedAmount: '10' }),
+})
+const r = await res.json()
+if (r.verdict === 'ok') await sendPayment()
+else showWarning(r.resumen, r.findings) // e.g. "Don't sign it." + CELO-001, AMOUNT_MISMATCH
+```
+
+Or use the tiny helper in `lib/client.ts`:
+
+```ts
+import { checkPayment, PaymentRequired } from './lib/client'
+const r = await checkPayment('https://<your-vigia-host>', { input: paymentLink, expectedAmount: '10' })
+```
+
+With x402 enabled, a call without payment gets `402` plus the requirements (`PaymentRequired` in the helper). Pass a signed `X-PAYMENT` header (`{ xPayment }`) to pay per check. `scripts/x402-pay.ts` is a buyer example.
+
+## MiniPay: `/pay?link=…`
+
+`/pay?link=<payment link>&amount=<expected amount, optional>` opens straight from the link, with no paste step. It calls `/api/check` on load:
+- `ok`: shows **Pay 10 USDC**. In MiniPay it sends exactly the checked transfer, with the stablecoin's fee adapter and the ERC-8021 tag.
+- `revisa`: shows the warning. Paying needs an extra "I know this recipient" tap.
+- `no_firmes`: shows the warning and no pay button.
+
+The home page (`/`) is still there as a manual checker for testing.
 
 ## What it checks
 
@@ -31,7 +76,7 @@ npm run dev        # http://localhost:3000
 npm test
 ```
 
-To test in MiniPay, enable *Developer mode* and load your URL (for example through an ngrok tunnel). The app detects `window.ethereum.isMiniPay`, reads the address without asking for a signature, and uses `scanQrCode` for QR codes.
+To test in MiniPay, enable *Developer mode* and load your URL (for example through an ngrok tunnel), e.g. `https://<tunnel>/pay?link=ethereum:…`. The app detects `window.ethereum.isMiniPay`, reads the address without asking for a signature, and uses `scanQrCode` for QR codes.
 
 ### Accepted input
 - Address: `0x…`
@@ -39,18 +84,7 @@ To test in MiniPay, enable *Developer mode* and load your URL (for example throu
 - Tx JSON: `{"to":"0x…","data":"0x…","from":"0x…","feeCurrency":"0x…"}`
 - `<to>:<calldata>`
 
-## API
-
-`POST /api/check` (or `GET /api/check?input=…`)
-
-```bash
-curl -X POST localhost:3000/api/check -H 'content-type: application/json' \
-  -d '{"input":"ethereum:0x01C5C0122039549AD1493B8220cABEdD739BC44E@11142220/transfer?address=0x2222222222222222222222222222222222222222&uint256=10e18","network":"sepolia","expectedAmount":"10"}'
-```
-
-Response: `{ verdict: "no_firmes"|"revisa"|"ok", semaforo, resumen, intent, findings[], fee, simulated }`. The field names and verdict values are kept from the original API for compatibility; the text is in English.
-
-### x402
+## x402 details
 With `X402_ENABLED=true`, `X402_PAY_TO` and `X402_API_KEY`, a request without `X-PAYMENT` gets **402** plus payment requirements for the Celo Sepolia facilitator; with a payment it calls `/verify` and `/settle`. Covered by unit tests with a mocked facilitator. No live payment has settled yet (the test payer has no testnet USDC). See `docs/TESTNET.md` and `.env.example`.
 
 ## Attribution tag (ERC-8021)

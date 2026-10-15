@@ -1,7 +1,7 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Vigía",
-  "description": "Vigía (Celo): security pre-check for transactions on Celo before you sign (address, payment link and tx analysis).",
+  "description": "Vigía (Celo): automatic pre-send check API for Celo payments (POST /api/check, x402 per check), plus a MiniPay deep link (/pay?link=…) that checks a payment link before showing Pay.",
   "image": "",
   "services": [
     {
