@@ -24,8 +24,11 @@ export const MAINNET_SENDS_ENABLED = false
 
 export const X402 = {
   enabled: () => process.env.X402_ENABLED === 'true',
-  facilitatorUrl: () => process.env.X402_FACILITATOR_URL || 'https://x402.celo.org',
-  network: () => process.env.X402_NETWORK || 'celo',
+  /** Testnet facilitator by default; mainnet is https://api.x402.celo.org */
+  facilitatorUrl: () => process.env.X402_FACILITATOR_URL || 'https://api.x402.sepolia.celo.org',
+  network: () => process.env.X402_NETWORK || 'celo-sepolia',
+  /** Server-only facilitator key (created by the human on x402.celo.org). Never sent to clients. */
+  apiKey: () => process.env.X402_API_KEY || '',
   priceUsd: () => process.env.X402_PRICE_USD || '0.01',
   payTo: () => process.env.X402_PAY_TO || '',
 }

@@ -24,24 +24,56 @@ describe('attribution', () => {
   })
 })
 
-describe('x402 stub', () => {
-  afterEach(() => { delete process.env.X402_ENABLED; delete process.env.X402_PAY_TO })
-  it('open when disabled', () => {
-    expect(gate(new Headers(), '/api/check').ok).toBe(true)
+describe('x402 gate', () => {
+  afterEach(() => { for (const k of ['X402_ENABLED', 'X402_PAY_TO', 'X402_API_KEY']) delete process.env[k] })
+  const on = () => { process.env.X402_ENABLED = 'true'; process.env.X402_PAY_TO = '0x3333333333333333333333333333333333333333'; process.env.X402_API_KEY = 'test' }
+  const hdr = () => new Headers({ 'x-payment': Buffer.from(JSON.stringify({ x402Version: 1, scheme: 'exact', network: 'celo-sepolia', payload: {} })).toString('base64') })
+  const mock = (verify: object, settle: object) => {
+    const calls: string[] = []
+    const f = (async (url: string, init: RequestInit) => {
+      calls.push(url)
+      expect((init.headers as Record<string, string>)['x-api-key']).toBe('test')
+      return new Response(JSON.stringify(url.endsWith('/verify') ? verify : settle))
+    }) as unknown as typeof fetch
+    return { f, calls }
+  }
+  it('open when disabled', async () => {
+    expect((await gate(new Headers(), '/api/check')).ok).toBe(true)
   })
-  it('402 with requirements when enabled and unpaid', () => {
-    process.env.X402_ENABLED = 'true'
-    process.env.X402_PAY_TO = '0x3333333333333333333333333333333333333333'
-    const g = gate(new Headers(), '/api/check')
-    expect(g.ok).toBe(false)
-    if (!g.ok) {
-      expect(g.status).toBe(402)
-      expect((g.body as { accepts: { network: string; payTo: string }[] }).accepts[0]).toMatchObject({ network: 'celo', payTo: '0x3333333333333333333333333333333333333333' })
-    }
+  it('402 with testnet requirements when enabled and unpaid', async () => {
+    on()
+    const g = await gate(new Headers(), '/api/check')
+    expect(!g.ok && g.status).toBe(402)
+    if (!g.ok) expect((g.body as { accepts: object[] }).accepts[0]).toMatchObject({ network: 'celo-sepolia', asset: '0x01C5C0122039549AD1493B8220cABEdD739BC44E', payTo: '0x3333333333333333333333333333333333333333', maxAmountRequired: '10000' })
   })
-  it('501 when enabled without payTo', () => {
+  it('501 when enabled without config', async () => {
     process.env.X402_ENABLED = 'true'
-    const g = gate(new Headers(), '/api/check')
+    const g = await gate(new Headers(), '/api/check')
     expect(!g.ok && g.status).toBe(501)
+  })
+  it('verifies then settles a payment', async () => {
+    on()
+    const { f, calls } = mock({ isValid: true }, { success: true, transaction: '0xabc', network: 'celo-sepolia' })
+    const g = await gate(hdr(), '/api/check', f)
+    expect(g.ok).toBe(true)
+    expect(calls.map((c) => c.split('/').pop())).toEqual(['verify', 'settle'])
+  })
+  it('rejects an invalid payment without settling', async () => {
+    on()
+    const { f, calls } = mock({ isValid: false, invalidReason: 'insufficient_funds' }, {})
+    const g = await gate(hdr(), '/api/check', f)
+    expect(!g.ok && g.status).toBe(402)
+    expect(calls).toHaveLength(1)
+  })
+})
+
+describe('server wallet key handling', () => {
+  it('normalizes keys with or without 0x and rejects bad ones', async () => {
+    const { normalizeKey } = await import('@/lib/serverWallet')
+    const k = 'ab'.repeat(32)
+    expect(normalizeKey(k)).toBe('0x' + k)
+    expect(normalizeKey('0x' + k)).toBe('0x' + k)
+    expect(() => normalizeKey('')).toThrow()
+    expect(() => normalizeKey('0x123')).toThrow(/malformed/)
   })
 })
