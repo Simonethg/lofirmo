@@ -19,12 +19,15 @@ export function rpcUrl(net: Network): string | undefined {
   return v || undefined
 }
 
-/** MVP safety switch: no tx is ever sent on mainnet from this app. */
-export const MAINNET_SENDS_ENABLED = false
+/**
+ * Safety switch: mainnet sends are off unless the server env sets MAINNET_SENDS_ENABLED=true
+ * (only the operator scripts do this). Browser bundles never see it, so it stays false there.
+ */
+export const MAINNET_SENDS_ENABLED = typeof process !== 'undefined' && process.env.MAINNET_SENDS_ENABLED === 'true'
 
 export const X402 = {
   enabled: () => process.env.X402_ENABLED === 'true',
-  /** Testnet facilitator by default; mainnet is https://api.x402.celo.org */
+  /** Testnet facilitator by default; mainnet is https://api.x402.celo.org with X402_NETWORK=celo */
   facilitatorUrl: () => process.env.X402_FACILITATOR_URL || 'https://api.x402.sepolia.celo.org',
   network: () => process.env.X402_NETWORK || 'celo-sepolia',
   /** Server-only facilitator key (created by the human on x402.celo.org). Never sent to clients. */
