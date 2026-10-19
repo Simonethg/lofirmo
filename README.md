@@ -7,7 +7,7 @@ Vigía checks a Celo payment **automatically, before it is sent**. Nobody pastes
 
 Vigía is one security product with one brand across Arc, Base and Celo. This repo is the Celo version (formerly "¿Lo firmo?"). The repo keeps the name `lofirmo` because the ERC-8004 agent registration points to it.
 
-Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**: ERC-8004 agentId **9978**, ERC-8021-tagged operator txs paying gas in USDC, and 5 x402 checks settled in USDC on mainnet. See [`docs/MAINNET.md`](docs/MAINNET.md). **Public deployment: https://vigia-celo.netlify.app**. The app still defaults to Celo Sepolia; set `NEXT_PUBLIC_CELO_NETWORK=mainnet` for mainnet. Server-side mainnet sends need `MAINNET_SENDS_ENABLED=true` (operator scripts only).
+Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**: ERC-8004 agentId **9978**, ERC-8021-tagged operator txs paying gas in USDC, and 5 x402 checks settled in USDC on mainnet. See [`docs/MAINNET.md`](docs/MAINNET.md). **Public deployment: https://vigia-celo.netlify.app**. The app still defaults to Celo Sepolia; set `NEXT_PUBLIC_CELO_NETWORK=mainnet` for mainnet. Two separate mainnet switches: `NEXT_PUBLIC_MINIPAY_MAINNET_PAY=true` (build time) enables the MiniPay **Pay** button, which signs from the person's own wallet; `MAINNET_SENDS_ENABLED=true` gates sends from our own wallets and is only for the operator scripts, never set on the host.
 
 ## Call it from code
 
@@ -100,7 +100,8 @@ Every wallet client is built with `withAttribution('celo_ee3c13be2ff7')` from `@
 ## Mainnet status
 - Done: operator wallet / `X402_PAY_TO` (`0xA92f…eda2`), ERC-8004 agentId 9978 on Celo mainnet (testnet agentId 596 on Celo Sepolia), live x402 settlements. Details in `docs/MAINNET.md`.
 - Public deploy: https://vigia-celo.netlify.app (Netlify), with a paid check settled against it.
-- Missing: MiniPay listing, and enabling MiniPay sends on mainnet in the app (`MAINNET_SENDS_ENABLED` is off).
+- MiniPay Pay on mainnet is enabled on the public deploy (`NEXT_PUBLIC_MINIPAY_MAINNET_PAY=true`).
+- Missing: MiniPay listing.
 - A list of known scam addresses.
 
 ## License

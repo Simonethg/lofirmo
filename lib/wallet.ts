@@ -1,7 +1,7 @@
 'use client'
 import { withAttribution } from '@celo/attribution-tags'
 import { createWalletClient, custom, type EIP1193Provider } from 'viem'
-import { ATTRIBUTION_TAG, CHAINS, MAINNET_SENDS_ENABLED } from './config'
+import { ATTRIBUTION_TAG, CHAINS, MINIPAY_MAINNET_PAY } from './config'
 import type { Network } from './tokens'
 
 declare global {
@@ -18,7 +18,8 @@ export const isMiniPay = () => typeof window !== 'undefined' && !!window.ethereu
  */
 export function walletClient(net: Network) {
   if (!window.ethereum) throw new Error('No wallet found (open the app inside MiniPay)')
-  if (net === 'mainnet' && !MAINNET_SENDS_ENABLED) throw new Error('Mainnet sends are disabled in this MVP')
+  // User-wallet sends only (MiniPay). Operator sends from our wallets are gated by MAINNET_SENDS_ENABLED in serverWallet.
+  if (net === 'mainnet' && !MINIPAY_MAINNET_PAY) throw new Error('Paying on mainnet is not enabled on this deployment')
   return createWalletClient({ chain: CHAINS[net], transport: custom(window.ethereum) }).extend(withAttribution(ATTRIBUTION_TAG))
 }
 

@@ -25,6 +25,13 @@ export function rpcUrl(net: Network): string | undefined {
  */
 export const MAINNET_SENDS_ENABLED = typeof process !== 'undefined' && process.env.MAINNET_SENDS_ENABLED === 'true'
 
+/**
+ * User-wallet Pay button on mainnet (MiniPay signs from the person's own wallet; the host has no keys).
+ * Separate from MAINNET_SENDS_ENABLED, which only gates operator sends from our own wallets.
+ * NEXT_PUBLIC_ so Next inlines it into the browser bundle at build time.
+ */
+export const MINIPAY_MAINNET_PAY = process.env.NEXT_PUBLIC_MINIPAY_MAINNET_PAY === 'true'
+
 export const X402 = {
   enabled: () => process.env.X402_ENABLED === 'true',
   /** Testnet facilitator by default; mainnet is https://api.x402.celo.org with X402_NETWORK=celo */
