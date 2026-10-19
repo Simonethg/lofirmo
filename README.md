@@ -7,7 +7,7 @@ Vigía checks a Celo payment **automatically, before it is sent**. Nobody pastes
 
 Vigía is one security product with one brand across Arc, Base and Celo. This repo is the Celo version (formerly "¿Lo firmo?"). The repo keeps the name `lofirmo` because the ERC-8004 agent registration points to it.
 
-Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**: ERC-8004 agentId **9978**, ERC-8021-tagged operator txs paying gas in USDC, and 5 x402 checks settled in USDC on mainnet. See [`docs/MAINNET.md`](docs/MAINNET.md). The app still defaults to Celo Sepolia; set `NEXT_PUBLIC_CELO_NETWORK=mainnet` for mainnet. Server-side mainnet sends need `MAINNET_SENDS_ENABLED=true` (operator scripts only).
+Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**: ERC-8004 agentId **9978**, ERC-8021-tagged operator txs paying gas in USDC, and 5 x402 checks settled in USDC on mainnet. See [`docs/MAINNET.md`](docs/MAINNET.md). **Public deployment: https://vigia-celo.netlify.app**. The app still defaults to Celo Sepolia; set `NEXT_PUBLIC_CELO_NETWORK=mainnet` for mainnet. Server-side mainnet sends need `MAINNET_SENDS_ENABLED=true` (operator scripts only).
 
 ## Call it from code
 
@@ -23,7 +23,7 @@ Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**:
 The response is `{ verdict, resumen, findings[], intent, fee, simulated, ... }`. `verdict` is `"ok"`, `"revisa"` (review) or `"no_firmes"` (don't sign). The field names are kept from the original API for compatibility; the text is in English.
 
 ```js
-const res = await fetch('https://<your-vigia-host>/api/check', {
+const res = await fetch('https://vigia-celo.netlify.app/api/check', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ input: paymentLink, expectedAmount: '10' }),
@@ -37,14 +37,14 @@ Or use the tiny helper in `lib/client.ts`:
 
 ```ts
 import { checkPayment, PaymentRequired } from './lib/client'
-const r = await checkPayment('https://<your-vigia-host>', { input: paymentLink, expectedAmount: '10' })
+const r = await checkPayment('https://vigia-celo.netlify.app', { input: paymentLink, expectedAmount: '10' })
 ```
 
 With x402 enabled, a call without payment gets `402` plus the requirements (`PaymentRequired` in the helper). Pass a signed `X-PAYMENT` header (`{ xPayment }`) to pay per check. `scripts/x402-pay.ts` is a buyer example.
 
 ## MiniPay: `/pay?link=…`
 
-`/pay?link=<payment link>&amount=<expected amount, optional>` opens straight from the link, with no paste step. It calls `/api/check` on load:
+`/pay?link=<payment link>&amount=<expected amount, optional>` opens straight from the link, with no paste step. The check runs **on the server while the page renders** (the analyzer is called directly, not through `/api/check`), so people paying never hit the x402 paywall: x402 is only for agents and apps calling `/api/check`, which stays paid. There is no unpaid JSON endpoint.
 - `ok`: shows **Pay 10 USDC**. In MiniPay it sends exactly the checked transfer, with the stablecoin's fee adapter and the ERC-8021 tag.
 - `revisa`: shows the warning. Paying needs an extra "I know this recipient" tap.
 - `no_firmes`: shows the warning and no pay button.
@@ -67,6 +67,13 @@ The home page (`/`) is still there as a manual checker for testing.
 | FEE | Network fee quoted in the stablecoin |
 
 Token/adapter addresses and the CELO-00x rules come from [docs.celo.org fee currencies](https://docs.celo.org/build/tools/contracts/fee-currencies) and are ported to TypeScript from the Celo detectors in [arcguard](https://github.com/Simonethg/arcguard) (PR #3).
+
+## Deploy (Netlify)
+`netlify.toml` builds Next.js with `@netlify/plugin-nextjs` and `NEXT_PUBLIC_CELO_NETWORK=mainnet`. One command creates the site, sets the x402 env on it (the API key as a secret, never printed; no wallet keys) and deploys once:
+
+```bash
+NETLIFY_AUTH_TOKEN=... X402_API_KEY=... node scripts/deploy-netlify.mjs
+```
 
 ## Usage
 
@@ -92,7 +99,8 @@ Every wallet client is built with `withAttribution('celo_ee3c13be2ff7')` from `@
 
 ## Mainnet status
 - Done: operator wallet / `X402_PAY_TO` (`0xA92f…eda2`), ERC-8004 agentId 9978 on Celo mainnet (testnet agentId 596 on Celo Sepolia), live x402 settlements. Details in `docs/MAINNET.md`.
-- Missing: public HTTPS deploy (the mainnet x402 run used a local server) and MiniPay listing.
+- Public deploy: https://vigia-celo.netlify.app (Netlify), with a paid check settled against it.
+- Missing: MiniPay listing, and enabling MiniPay sends on mainnet in the app (`MAINNET_SENDS_ENABLED` is off).
 - A list of known scam addresses.
 
 ## License

@@ -6,6 +6,14 @@
   "services": [
     {
       "name": "web",
+      "endpoint": "https://vigia-celo.netlify.app"
+    },
+    {
+      "name": "x402",
+      "endpoint": "https://vigia-celo.netlify.app/api/check"
+    },
+    {
+      "name": "source",
       "endpoint": "https://github.com/Simonethg/lofirmo"
     }
   ],

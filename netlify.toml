@@ -1,0 +1,13 @@
+# Netlify deploy for Vigía (Next.js via the OpenNext-based @netlify/plugin-nextjs runtime).
+# Runtime secrets/config (X402_*) are set on the site, never here. See scripts/deploy-netlify.sh.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
+  NEXT_PUBLIC_CELO_NETWORK = "mainnet"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

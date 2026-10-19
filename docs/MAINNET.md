@@ -1,5 +1,7 @@
 # Celo Mainnet (chain 42220): live run, 2026-10-19
 
+**Public deployment: https://vigia-celo.netlify.app** (Netlify). `POST https://vigia-celo.netlify.app/api/check` (x402, 0.01 USDC) and `https://vigia-celo.netlify.app/pay?link=…`.
+
 Everything below is on Celo Mainnet and can be checked on [Celoscan](https://celoscan.io) or [Blockscout](https://celo.blockscout.com).
 
 - Operator wallet (deployer, owner of the agent, x402 `payTo`): [`0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2`](https://celoscan.io/address/0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2)
@@ -56,4 +58,10 @@ Failure cases (nothing settles):
 
 ## Hosting
 
-No public deployment of Vigía exists yet (no Vercel/other config in the repo, and no Vigía project on the connected Vercel account). The x402 test above ran against a local server (`next dev`) on the operator's box, with real mainnet settlement through `https://api.x402.celo.org`. A public HTTPS deploy is still needed for MiniPay and for third parties to call `/api/check`.
+Vigía runs at **https://vigia-celo.netlify.app**: Netlify, Next.js through `@netlify/plugin-nextjs`, deployed with `node scripts/deploy-netlify.mjs`. The site env has `X402_ENABLED=true`, `X402_FACILITATOR_URL=https://api.x402.celo.org`, `X402_NETWORK=celo`, `X402_PAY_TO=0xA92f…eda2` and the facilitator API key (server-side only). `MAINNET_SENDS_ENABLED` is unset, and no wallet private key is on the host.
+
+- `/pay?link=…` runs the check on the server while the page renders, so people paying never hit the paywall. [Good link](https://vigia-celo.netlify.app/pay?link=ethereum%3A0xcebA9300f2b948710d2653dD7B07f33A8B32118C%4042220%2Ftransfer%3Faddress%3D0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2%26uint256%3D10e6&amount=10) shows "No problems found" and **Pay 10 USDC**. [Bad link (10e18)](https://vigia-celo.netlify.app/pay?link=ethereum%3A0xcebA9300f2b948710d2653dD7B07f33A8B32118C%4042220%2Ftransfer%3Faddress%3D0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2%26uint256%3D10e18&amount=10) shows "Don't sign it." with CELO-001 and AMOUNT_MISMATCH, and no pay button.
+- `POST /api/check` with no payment returns **402** with the mainnet requirements (`network: celo`, `maxAmountRequired: 10000`, USDC `0xcebA…118C`, `payTo 0xA92f…eda2`).
+- Paid check against the public URL (good link, verdict `ok`): settlement [`0x0b049664…dd8c`](https://celoscan.io/tx/0x0b049664bf6fbb7062b6b9775efa8a53d9d95931dc6c92df6cb8fad4711edd8c) ([Blockscout](https://celo.blockscout.com/tx/0x0b049664bf6fbb7062b6b9775efa8a53d9d95931dc6c92df6cb8fad4711edd8c)), block 80524771, `Transfer(0x62b3…7B0b → 0xA92f…eda2, 10000)`.
+
+The first five settlements above ran against a local server before the public deploy existed.
