@@ -59,14 +59,19 @@ async function main() {
   writeFileSync(statePath, JSON.stringify({ siteId: site.id }, null, 2))
   console.log(`site: ${site.name} ${site.ssl_url || site.url} (id ${site.id}, account ${account})`)
 
+  // Free plans cannot set scopes or secret values (HTTP 403), so: no scopes (= all), and the API key is
+  // stored as a secret when the plan allows it, otherwise as a regular (server-only, never public) env var.
   for (const [key, value] of Object.entries(ENV)) {
-    const entry = { key, scopes: ['builds', 'functions', 'runtime'], ...(SECRET.has(key)
-      ? { is_secret: true, values: [{ value, context: 'production' }] } // Netlify secrets take explicit contexts
-      : { values: [{ value, context: 'all' }] }) }
-    let r = await api('POST', `/accounts/${account}/env?site_id=${site.id}`, [entry])
-    if (!r.ok) r = await api('PUT', `/accounts/${account}/env/${key}?site_id=${site.id}`, entry)
-    if (!r.ok) throw new Error(`setting ${key} failed (HTTP ${r.status})`)
-    console.log(`env ${key} set${SECRET.has(key) ? ' (secret, value hidden)' : `=${value}`}`)
+    const plain = { key, values: [{ value, context: 'all' }] }
+    const tries = SECRET.has(key) ? [{ key, is_secret: true, values: [{ value, context: 'production' }] }, plain] : [plain]
+    let done = false
+    for (const entry of tries) {
+      let r = await api('POST', `/accounts/${account}/env?site_id=${site.id}`, [entry])
+      if (!r.ok && r.status !== 403) r = await api('PUT', `/accounts/${account}/env/${key}?site_id=${site.id}`, entry)
+      if (r.ok) { done = true; console.log(`env ${key} set${SECRET.has(key) ? (entry.is_secret ? ' (secret, value hidden)' : ' (plan has no secrets: regular server env, value hidden)') : `=${value}`}`); break }
+      console.log(`env ${key}: HTTP ${r.status}${entry.is_secret ? ' for secret mode, falling back' : ''}`)
+    }
+    if (!done) throw new Error(`setting ${key} failed`)
   }
 
   const env = { ...process.env }
