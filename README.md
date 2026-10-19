@@ -7,7 +7,7 @@ Vigía checks a Celo payment **automatically, before it is sent**. Nobody pastes
 
 Vigía is one security product with one brand across Arc, Base and Celo. This repo is the Celo version (formerly "¿Lo firmo?"). The repo keeps the name `lofirmo` because the ERC-8004 agent registration points to it.
 
-Built for the *Agents on Open Rails* hackathon (Celo). Current network: **Celo Sepolia (testnet)**. Mainnet is configured but **sends are disabled** (`MAINNET_SENDS_ENABLED = false`). No x402 payment has settled live yet.
+Built for the *Agents on Open Rails* hackathon (Celo). **Live on Celo Mainnet**: ERC-8004 agentId **9978**, ERC-8021-tagged operator txs paying gas in USDC, and 5 x402 checks settled in USDC on mainnet. See [`docs/MAINNET.md`](docs/MAINNET.md). The app still defaults to Celo Sepolia; set `NEXT_PUBLIC_CELO_NETWORK=mainnet` for mainnet. Server-side mainnet sends need `MAINNET_SENDS_ENABLED=true` (operator scripts only).
 
 ## Call it from code
 
@@ -85,16 +85,14 @@ To test in MiniPay, enable *Developer mode* and load your URL (for example throu
 - `<to>:<calldata>`
 
 ## x402 details
-With `X402_ENABLED=true`, `X402_PAY_TO` and `X402_API_KEY`, a request without `X-PAYMENT` gets **402** plus payment requirements for the Celo Sepolia facilitator; with a payment it calls `/verify` and `/settle`. Covered by unit tests with a mocked facilitator. No live payment has settled yet (the test payer has no testnet USDC). See `docs/TESTNET.md` and `.env.example`.
+With `X402_ENABLED=true`, `X402_PAY_TO` and `X402_API_KEY`, a request without `X-PAYMENT` gets **402** plus payment requirements; with a payment it calls the facilitator's `/verify` and `/settle`. For mainnet use `X402_FACILITATOR_URL=https://api.x402.celo.org` and `X402_NETWORK=celo` (USDC `0xcebA…118C`). Five live mainnet payments settled on 2026-10-19 (`docs/MAINNET.md`); covered by unit tests with a mocked facilitator. See `docs/TESTNET.md` and `.env.example`.
 
 ## Attribution tag (ERC-8021)
 Every wallet client is built with `withAttribution('celo_ee3c13be2ff7')` from `@celo/attribution-tags` (`lib/wallet.ts`, `lib/serverWallet.ts`), so every tx carries the tag. A test checks it.
 
-## Missing for mainnet
-- Mainnet operating wallet and `X402_PAY_TO`.
-- **ERC-8004** agent identity on Celo mainnet (testnet agentId 596 exists on Celo Sepolia).
-- A live x402 settlement.
-- Public HTTPS deploy and MiniPay listing.
+## Mainnet status
+- Done: operator wallet / `X402_PAY_TO` (`0xA92f…eda2`), ERC-8004 agentId 9978 on Celo mainnet (testnet agentId 596 on Celo Sepolia), live x402 settlements. Details in `docs/MAINNET.md`.
+- Missing: public HTTPS deploy (the mainnet x402 run used a local server) and MiniPay listing.
 - A list of known scam addresses.
 
 ## License
