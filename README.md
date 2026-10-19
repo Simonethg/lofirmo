@@ -44,7 +44,7 @@ With x402 enabled, a call without payment gets `402` plus the requirements (`Pay
 
 ## MiniPay: `/pay?link=…`
 
-`/pay?link=<payment link>&amount=<expected amount, optional>` opens straight from the link, with no paste step. It calls `/api/check` on load:
+`/pay?link=<payment link>&amount=<expected amount, optional>` opens straight from the link, with no paste step. The check runs **on the server while the page renders** (the analyzer is called directly, not through `/api/check`), so people paying never hit the x402 paywall: x402 is only for agents and apps calling `/api/check`, which stays paid. There is no unpaid JSON endpoint.
 - `ok`: shows **Pay 10 USDC**. In MiniPay it sends exactly the checked transfer, with the stablecoin's fee adapter and the ERC-8021 tag.
 - `revisa`: shows the warning. Paying needs an extra "I know this recipient" tap.
 - `no_firmes`: shows the warning and no pay button.
@@ -67,6 +67,13 @@ The home page (`/`) is still there as a manual checker for testing.
 | FEE | Network fee quoted in the stablecoin |
 
 Token/adapter addresses and the CELO-00x rules come from [docs.celo.org fee currencies](https://docs.celo.org/build/tools/contracts/fee-currencies) and are ported to TypeScript from the Celo detectors in [arcguard](https://github.com/Simonethg/arcguard) (PR #3).
+
+## Deploy (Netlify)
+`netlify.toml` builds Next.js with `@netlify/plugin-nextjs` and `NEXT_PUBLIC_CELO_NETWORK=mainnet`. One command creates the site, sets the x402 env on it (the API key as a secret, never printed; no wallet keys) and deploys once:
+
+```bash
+NETLIFY_AUTH_TOKEN=... X402_API_KEY=... node scripts/deploy-netlify.mjs
+```
 
 ## Usage
 

@@ -16,3 +16,4 @@ next-env.d.ts
 *.wav
 *.mp3
 .vercel
+.netlify
