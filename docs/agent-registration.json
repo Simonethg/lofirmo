@@ -1,7 +1,7 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Vigía",
-  "description": "Vigía (Celo): automatic pre-send check API for Celo payments (POST /api/check, x402 per check), plus a MiniPay deep link (/pay?link=…) that checks a payment link before showing Pay.",
+  "description": "Vigía (Celo): automatic pre-send check API for Celo payments (POST /api/check, x402 per check, 0.01 in USDC, USD₮ or USA₮ on Celo mainnet), plus a MiniPay deep link (/pay?link=…) that checks a payment link before showing Pay.",
   "image": "",
   "services": [
     {
@@ -10,7 +10,22 @@
     },
     {
       "name": "x402",
-      "endpoint": "https://vigia-celo.netlify.app/api/check"
+      "endpoint": "https://vigia-celo.netlify.app/api/check",
+      "assets": [
+        {
+          "symbol": "USDC",
+          "asset": "eip155:42220/erc20:0xcebA9300f2b948710d2653dD7B07f33A8B32118C"
+        },
+        {
+          "symbol": "USD₮",
+          "asset": "eip155:42220/erc20:0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"
+        },
+        {
+          "symbol": "USA₮",
+          "asset": "eip155:42220/erc20:0xD2ab3C9A02DBBAB236BfEC45D1d755DF4267F771"
+        }
+      ],
+      "price": "0.01"
     },
     {
       "name": "source",

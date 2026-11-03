@@ -1,6 +1,6 @@
 # Celo Mainnet (chain 42220): live run, 2026-10-19
 
-**Public deployment: https://vigia-celo.netlify.app** (Netlify). `POST https://vigia-celo.netlify.app/api/check` (x402, 0.01 USDC) and `https://vigia-celo.netlify.app/pay?link=…`.
+**Public deployment: https://vigia-celo.netlify.app** (Netlify). `POST https://vigia-celo.netlify.app/api/check` (x402, 0.01 USDC, USD₮ or USA₮) and `https://vigia-celo.netlify.app/pay?link=…`.
 
 Everything below is on Celo Mainnet and can be checked on [Celoscan](https://celoscan.io) or [Blockscout](https://celo.blockscout.com).
 
@@ -28,7 +28,7 @@ Both txs together cost about 0.0084 USDC in gas. Each tx's on-chain `input` ends
 
 ## x402: live mainnet payments
 
-Server config (local run, see Hosting below): `NEXT_PUBLIC_CELO_NETWORK=mainnet X402_ENABLED=true X402_FACILITATOR_URL=https://api.x402.celo.org X402_NETWORK=celo X402_PAY_TO=0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2 X402_API_KEY=<server secret>`. Price: 0.01 USDC per check (USDC mainnet, EIP-3009).
+Server config (local run, see Hosting below): `NEXT_PUBLIC_CELO_NETWORK=mainnet X402_ENABLED=true X402_FACILITATOR_URL=https://api.x402.celo.org X402_NETWORK=celo X402_PAY_TO=0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2 X402_API_KEY=<server secret>`. Price: 0.01 per check in USDC, USD₮ (`0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e`) or USA₮ (`0xD2ab3C9A02DBBAB236BfEC45D1d755DF4267F771`), all EIP-3009, 6 decimals.
 
 Buyer: `PAYER_KEY_FILE=<file outside the repo> npx tsx scripts/x402-pay.ts <base-url> '<payment link>' 10 --mode=pay|nopay|underpay`
 
@@ -46,7 +46,7 @@ Blocks 80523247 to 80523301. Each settlement emits `Transfer(0x62b3…7B0b → 0
 
 Failure cases (nothing settles):
 
-- **No payment**: `402` with `error: "X-PAYMENT header is required"` and `accepts[0] = { scheme: "exact", network: "celo", maxAmountRequired: "10000", asset: "0xcebA…118C", payTo: "0xA92f…eda2", extra: { name: "USDC", version: "2" } }`.
+- **No payment**: `402` with `error: "X-PAYMENT header is required"` and `accepts` with three entries (USDC, USD₮, USA₮). `accepts[0] = { scheme: "exact", network: "celo", maxAmountRequired: "10000", asset: "0xcebA…118C", payTo: "0xA92f…eda2", extra: { name: "USDC", version: "2" } }`.
 - **Bad payment** (authorization signed for 9999 instead of 10000): `402` with `error: "payment invalid: invalid_payment_amount"`, the reason returned by the facilitator's `/verify`.
 
 ## How to verify
@@ -61,7 +61,7 @@ Failure cases (nothing settles):
 Vigía runs at **https://vigia-celo.netlify.app**: Netlify, Next.js through `@netlify/plugin-nextjs`, deployed with `node scripts/deploy-netlify.mjs`. The site env has `X402_ENABLED=true`, `X402_FACILITATOR_URL=https://api.x402.celo.org`, `X402_NETWORK=celo`, `X402_PAY_TO=0xA92f…eda2` and the facilitator API key (server-side only). `NEXT_PUBLIC_MINIPAY_MAINNET_PAY=true` enables the MiniPay Pay button, which signs from the person's own wallet with the USDC fee adapter and the ERC-8021 tag. `MAINNET_SENDS_ENABLED`, which gates sends from our own wallets, is unset, and no wallet private key is on the host.
 
 - `/pay?link=…` runs the check on the server while the page renders, so people paying never hit the paywall. [Good link](https://vigia-celo.netlify.app/pay?link=ethereum%3A0xcebA9300f2b948710d2653dD7B07f33A8B32118C%4042220%2Ftransfer%3Faddress%3D0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2%26uint256%3D10e6&amount=10) shows "No problems found" and **Pay 10 USDC**. [Bad link (10e18)](https://vigia-celo.netlify.app/pay?link=ethereum%3A0xcebA9300f2b948710d2653dD7B07f33A8B32118C%4042220%2Ftransfer%3Faddress%3D0xA92fa55fA1a1E70334B6351Bc6457BEA6C8aeda2%26uint256%3D10e18&amount=10) shows "Don't sign it." with CELO-001 and AMOUNT_MISMATCH, and no pay button.
-- `POST /api/check` with no payment returns **402** with the mainnet requirements (`network: celo`, `maxAmountRequired: 10000`, USDC `0xcebA…118C`, `payTo 0xA92f…eda2`).
+- `POST /api/check` with no payment returns **402** with the mainnet requirements (`network: celo`, `maxAmountRequired: 10000`, USDC `0xcebA…118C`, USD₮ `0x4806…5e`, USA₮ `0xD2ab…F771`, `payTo 0xA92f…eda2`).
 - Paid check against the public URL (good link, verdict `ok`): settlement [`0x0b049664…dd8c`](https://celoscan.io/tx/0x0b049664bf6fbb7062b6b9775efa8a53d9d95931dc6c92df6cb8fad4711edd8c) ([Blockscout](https://celo.blockscout.com/tx/0x0b049664bf6fbb7062b6b9775efa8a53d9d95931dc6c92df6cb8fad4711edd8c)), block 80524771, `Transfer(0x62b3…7B0b → 0xA92f…eda2, 10000)`.
 
 The first five settlements above ran against a local server before the public deploy existed.

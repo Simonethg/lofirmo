@@ -7,11 +7,25 @@ import { X402 } from './config'
  */
 export const USDC_MAINNET = '0xcebA9300f2b948710d2653dD7B07f33A8B32118C'
 export const USDC_SEPOLIA = '0x01C5C0122039549AD1493B8220cABEdD739BC44E'
+/** Tether USD₮ and USA₮ on Celo mainnet (docs.celo.org fee-currencies; both listed as eip3009 in api.x402.celo.org/supported). */
+export const USDT_MAINNET = '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e'
+export const USAT_MAINNET = '0xD2ab3C9A02DBBAB236BfEC45D1d755DF4267F771'
 
-export function paymentRequirements(resource: string) {
-  const atomic = Math.round(Number(X402.priceUsd()) * 1e6).toString() // USDC, 6 decimals
+type Asset = { asset: string; name: string; version: string }
+/** EIP-712 domain name/version must match each token contract, or the facilitator rejects the signature. All are 6 decimals. */
+export function acceptedAssets(net: string): Asset[] {
+  if (net !== 'celo') return [{ asset: USDC_SEPOLIA, name: 'USDC', version: '2' }]
+  return [
+    { asset: USDC_MAINNET, name: 'USDC', version: '2' },
+    { asset: USDT_MAINNET, name: 'Tether USD', version: '1' },
+    { asset: USAT_MAINNET, name: 'Tether America USD', version: '1' },
+  ]
+}
+
+export function allPaymentRequirements(resource: string) {
+  const atomic = Math.round(Number(X402.priceUsd()) * 1e6).toString() // 6-decimal stablecoins
   const net = X402.network()
-  return {
+  return acceptedAssets(net).map((a) => ({
     scheme: 'exact',
     network: net,
     maxAmountRequired: atomic,
@@ -20,13 +34,31 @@ export function paymentRequirements(resource: string) {
     mimeType: 'application/json',
     payTo: X402.payTo(),
     maxTimeoutSeconds: 60,
-    asset: net === 'celo' ? USDC_MAINNET : USDC_SEPOLIA,
-    extra: { name: 'USDC', version: '2' },
-  }
+    asset: a.asset,
+    extra: { name: a.name, version: a.version },
+  }))
+}
+
+/** First (default, USDC) requirement; kept for callers that expect a single one. */
+export function paymentRequirements(resource: string) {
+  return allPaymentRequirements(resource)[0]
 }
 
 export function requirementsBody(resource: string) {
-  return { x402Version: 1, error: 'X-PAYMENT header is required', accepts: [paymentRequirements(resource)] }
+  return { x402Version: 1, error: 'X-PAYMENT header is required', accepts: allPaymentRequirements(resource) }
+}
+
+/**
+ * The v1 payload does not name the token. Use an explicit `asset` hint if the client sent one
+ * (top level or `accepted.asset`); otherwise try each accepted token, since the EIP-712 signature
+ * only verifies against the token it was signed for.
+ */
+function candidates(payload: unknown, all: ReturnType<typeof allPaymentRequirements>) {
+  const p = (payload ?? {}) as { asset?: unknown; accepted?: { asset?: unknown } }
+  const hint = typeof p.asset === 'string' ? p.asset : typeof p.accepted?.asset === 'string' ? p.accepted.asset : undefined
+  if (!hint) return all
+  const m = all.filter((r) => r.asset.toLowerCase() === hint.toLowerCase())
+  return m.length ? m : all
 }
 
 export type Gate = { ok: true; settlement?: unknown } | { ok: false; status: 402 | 501; body: unknown }
@@ -54,10 +86,15 @@ export async function gate(headers: Headers, resource: string, f: Fetch = fetch)
   } catch {
     return { ok: false, status: 402, body: { ...requirementsBody(resource), error: 'X-PAYMENT is not valid base64 JSON' } }
   }
-  const req = { x402Version: 1, paymentPayload, paymentRequirements: paymentRequirements(resource) }
   try {
-    const v = await post(f, '/verify', req)
-    if (!v.ok || v.j.isValid !== true) return { ok: false, status: 402, body: { ...requirementsBody(resource), error: `payment invalid: ${String(v.j.invalidReason ?? 'verify failed')}` } }
+    let v: Awaited<ReturnType<typeof post>> | undefined
+    let req: { x402Version: number; paymentPayload: unknown; paymentRequirements: unknown } | undefined
+    for (const r of candidates(paymentPayload, allPaymentRequirements(resource))) {
+      req = { x402Version: 1, paymentPayload, paymentRequirements: r }
+      v = await post(f, '/verify', req)
+      if (v.ok && v.j.isValid === true) break
+    }
+    if (!v || !req || !v.ok || v.j.isValid !== true) return { ok: false, status: 402, body: { ...requirementsBody(resource), error: `payment invalid: ${String(v?.j.invalidReason ?? 'verify failed')}` } }
     const s = await post(f, '/settle', req, { 'x-idempotency-key': crypto.randomUUID() })
     if (!s.ok || s.j.success !== true) return { ok: false, status: 402, body: { ...requirementsBody(resource), error: `settlement failed: ${String(s.j.errorReason ?? 'settle failed')}` } }
     return { ok: true, settlement: s.j }

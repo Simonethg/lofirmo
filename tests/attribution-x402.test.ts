@@ -67,6 +67,56 @@ describe('x402 gate', () => {
   })
 })
 
+describe('x402 mainnet: USDC, USD₮ and USA₮', () => {
+  afterEach(() => { for (const k of ['X402_ENABLED', 'X402_PAY_TO', 'X402_API_KEY', 'X402_NETWORK']) delete process.env[k] })
+  const on = () => { process.env.X402_ENABLED = 'true'; process.env.X402_PAY_TO = '0x3333333333333333333333333333333333333333'; process.env.X402_API_KEY = 'test'; process.env.X402_NETWORK = 'celo' }
+  const hdr = (extra: object = {}) => new Headers({ 'x-payment': Buffer.from(JSON.stringify({ x402Version: 1, scheme: 'exact', network: 'celo', payload: {}, ...extra })).toString('base64') })
+  const USDT = '0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e'
+  const USAT = '0xD2ab3C9A02DBBAB236BfEC45D1d755DF4267F771'
+  // facilitator mock: only the requirement for `good` verifies
+  const mock = (good: string) => {
+    const assets: string[] = []
+    const f = (async (url: string, init: RequestInit) => {
+      const b = JSON.parse(String(init.body)) as { paymentRequirements: { asset: string } }
+      assets.push(url.split('/').pop() + ':' + b.paymentRequirements.asset)
+      if (url.endsWith('/verify')) return new Response(JSON.stringify(b.paymentRequirements.asset === good ? { isValid: true } : { isValid: false, invalidReason: 'invalid_signature' }))
+      return new Response(JSON.stringify({ success: true, transaction: '0xabc', network: 'celo' }))
+    }) as unknown as typeof fetch
+    return { f, assets }
+  }
+  it('402 advertises USDC, USD₮ and USA₮ at 10000 units each', async () => {
+    on()
+    const g = await gate(new Headers(), '/api/check')
+    if (g.ok) throw new Error('expected 402')
+    const acc = (g.body as { accepts: { asset: string; maxAmountRequired: string; extra: { name: string; version: string } }[] }).accepts
+    expect(acc.map((a) => a.asset)).toEqual(['0xcebA9300f2b948710d2653dD7B07f33A8B32118C', USDT, USAT])
+    expect(acc.every((a) => a.maxAmountRequired === '10000')).toBe(true)
+    expect(acc[1].extra).toEqual({ name: 'Tether USD', version: '1' })
+    expect(acc[2].extra).toEqual({ name: 'Tether America USD', version: '1' })
+  })
+  it('settles a USD₮ payment with the USD₮ requirement when no hint is given', async () => {
+    on()
+    const { f, assets } = mock(USDT)
+    const g = await gate(hdr(), '/api/check', f)
+    expect(g.ok).toBe(true)
+    expect(assets.at(-1)).toBe('settle:' + USDT)
+  })
+  it('uses the asset hint directly', async () => {
+    on()
+    const { f, assets } = mock(USAT)
+    const g = await gate(hdr({ accepted: { asset: USAT } }), '/api/check', f)
+    expect(g.ok).toBe(true)
+    expect(assets).toEqual(['verify:' + USAT, 'settle:' + USAT])
+  })
+  it('rejects when no token verifies, without settling', async () => {
+    on()
+    const { f, assets } = mock('0x0000000000000000000000000000000000000000')
+    const g = await gate(hdr(), '/api/check', f)
+    expect(!g.ok && g.status).toBe(402)
+    expect(assets.filter((a) => a.startsWith('settle'))).toHaveLength(0)
+  })
+})
+
 describe('server wallet key handling', () => {
   it('normalizes keys with or without 0x and rejects bad ones', async () => {
     const { normalizeKey } = await import('@/lib/serverWallet')

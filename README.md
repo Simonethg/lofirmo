@@ -92,7 +92,7 @@ To test in MiniPay, enable *Developer mode* and load your URL (for example throu
 - `<to>:<calldata>`
 
 ## x402 details
-With `X402_ENABLED=true`, `X402_PAY_TO` and `X402_API_KEY`, a request without `X-PAYMENT` gets **402** plus payment requirements; with a payment it calls the facilitator's `/verify` and `/settle`. For mainnet use `X402_FACILITATOR_URL=https://api.x402.celo.org` and `X402_NETWORK=celo` (USDC `0xcebA…118C`). Five live mainnet payments settled on 2026-10-19 (`docs/MAINNET.md`); covered by unit tests with a mocked facilitator. See `docs/TESTNET.md` and `.env.example`.
+With `X402_ENABLED=true`, `X402_PAY_TO` and `X402_API_KEY`, a request without `X-PAYMENT` gets **402** plus payment requirements; with a payment it calls the facilitator's `/verify` and `/settle`. For mainnet use `X402_FACILITATOR_URL=https://api.x402.celo.org` and `X402_NETWORK=celo`. On mainnet the 402 lists three accepts, 0.01 each (10000 units, 6 decimals, EIP-3009): USDC `0xcebA9300f2b948710d2653dD7B07f33A8B32118C`, USD₮ `0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e` and USA₮ `0xD2ab3C9A02DBBAB236BfEC45D1d755DF4267F771` (addresses from docs.celo.org fee currencies, all listed in `api.x402.celo.org/supported`). The server tries each accepted token at `/verify` (or the one named in the payload's `accepted.asset`) and settles the one that verifies. Five live mainnet payments settled on 2026-10-19 (`docs/MAINNET.md`); covered by unit tests with a mocked facilitator. See `docs/TESTNET.md` and `.env.example`.
 
 ## Attribution tag (ERC-8021)
 Every wallet client is built with `withAttribution('celo_ee3c13be2ff7')` from `@celo/attribution-tags` (`lib/wallet.ts`, `lib/serverWallet.ts`), so every tx carries the tag. A test checks it.
